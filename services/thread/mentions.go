@@ -120,7 +120,7 @@ func SaveThreadMessage(req models.CreateThreadMsgReq, db *storage.Database, logg
 		CreatedAt:        time.Now().UTC().Format(time.RFC3339),
 		AvatarURL:        profile.AvatarURL,
 		DefaultAvatarUrl: avatar.GenerateDefaultAvatarURL(req.UserId),
-		Type:             "message",
+		Type:             "messageType",
 		Content:          req.Content,
 		ThreadId:         threadDoc.ID,
 		Email:            user.Email,

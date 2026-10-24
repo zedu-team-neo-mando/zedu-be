@@ -40,16 +40,22 @@ func (base *Controller) AddAgentSetting(c *gin.Context) {
 		return
 	}
 
+	userID, ok := base.callerID(c)
+	if !ok {
+		return
+	}
+
 	ids := map[string]string{
 		"org_id":   org_id,
 		"agent_id": agent_id,
+		"user_id":  userID,
 	}
 
-	err := agents.AddAgentSettings(base.Db.Postgresql, ids, req)
+	code, err := agents.AddAgentSettings(base.Db.Postgresql, ids, req)
 	if err != nil {
 		base.Logger.Error("Failed to add agent settings", err)
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Failed to add agent settings", err.Error(), nil)
-		c.JSON(http.StatusBadRequest, rd)
+		rd := utility.BuildErrorResponse(code, "error", "Failed to add agent settings", err.Error(), nil)
+		c.JSON(code, rd)
 		return
 	}
 

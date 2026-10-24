@@ -40,16 +40,32 @@ func (base *Controller) AddAgentSlashCommand(c *gin.Context) {
 		return
 	}
 
+	userID, err := middleware.GetUserClaims(c, base.Db.Postgresql, "user_id")
+	if err != nil {
+		base.Logger.Info("unable to fetch user claims")
+		rd := utility.BuildErrorResponse(http.StatusUnauthorized, "error", "authentication required", err, nil)
+		c.JSON(http.StatusUnauthorized, rd)
+		return
+	}
+
+	userIDStr, ok := userID.(string)
+	if !ok {
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "user_id is not of type string", nil, nil)
+		c.JSON(http.StatusBadRequest, rd)
+		return
+	}
+
 	ids := map[string]string{
 		"org_id":   org_id,
 		"agent_id": agent_id,
+		"user_id":  userIDStr,
 	}
 
-	response, err := agents.AddAgentsSlashCommand(base.Db.Postgresql, ids, req)
+	response, code, err := agents.AddAgentsSlashCommand(base.Db.Postgresql, ids, req)
 	if err != nil {
 		base.Logger.Error("Failed to add agent slashcommands", err)
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Failed to add agent slashcommands", err.Error(), nil)
-		c.JSON(http.StatusBadRequest, rd)
+		rd := utility.BuildErrorResponse(code, "error", "Failed to add agent slashcommands", err.Error(), nil)
+		c.JSON(code, rd)
 		return
 	}
 

@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hngprojects/telex_be/internal/models"
+	"github.com/hngprojects/telex_be/pkg/middleware"
 	"github.com/hngprojects/telex_be/services/agents"
 	"github.com/hngprojects/telex_be/utility"
 )
@@ -78,16 +79,26 @@ func (base *Controller) GetAgentSettings(c *gin.Context) {
 		return
 	}
 
+	claim, err := middleware.GetUserClaims(c, base.Db.Postgresql, "user_id")
+	userID, ok := claim.(string)
+	if err != nil || !ok || userID == "" {
+		base.Logger.Error("failed to read user id from claims")
+		rd := utility.BuildErrorResponse(http.StatusUnauthorized, "error", "unauthorized user", "failed to read user from token", nil)
+		c.JSON(http.StatusUnauthorized, rd)
+		return
+	}
+
 	ids := map[string]string{
 		"org_id":   org_id,
 		"agent_id": agent_id,
+		"user_id":  userID,
 	}
 
-	setting, err := agents.GetAgentSetting(base.Db.Postgresql, ids)
+	setting, code, err := agents.GetAgentSetting(base.Db.Postgresql, ids)
 	if err != nil {
 		base.Logger.Error("Failed to get organisation agent setting", err)
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Failed to get organisation agent setting", err.Error(), nil)
-		c.JSON(http.StatusBadRequest, rd)
+		rd := utility.BuildErrorResponse(code, "error", "Failed to get organisation agent setting", err.Error(), nil)
+		c.JSON(code, rd)
 		return
 	}
 

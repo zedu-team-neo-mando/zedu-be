@@ -215,7 +215,22 @@ func (base *Controller) GetCurrentSubscription(c *gin.Context) {
 		orgID = c.Param("org_id")
 	)
 
-	subscriptionsData, code, err := service.GetCurrentSubscription(orgID, base.Db.Postgresql)
+	userID, err := middleware.GetUserClaims(c, base.Db.Postgresql, "user_id")
+	if err != nil {
+		base.Logger.Info("unable to fetch user claims")
+		rd := utility.BuildErrorResponse(http.StatusUnauthorized, "error", "authentication required", err, nil)
+		c.JSON(http.StatusUnauthorized, rd)
+		return
+	}
+
+	userIDStr, ok := userID.(string)
+	if !ok {
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "user_id is not of type string", nil, nil)
+		c.JSON(http.StatusBadRequest, rd)
+		return
+	}
+
+	subscriptionsData, code, err := service.GetCurrentSubscription(orgID, userIDStr, base.Db.Postgresql)
 	if err != nil {
 		rd := utility.BuildErrorResponse(code, "error", err.Error(), nil, nil)
 		c.JSON(code, rd)

@@ -222,10 +222,14 @@ func DeleteSubscription(orgId string, db *gorm.DB) (int, error) {
 	return http.StatusOK, nil
 }
 
-func GetCurrentSubscription(customerID string, db *gorm.DB) (models.OrgPlanDetails, int, error) {
+func GetCurrentSubscription(customerID, userID string, db *gorm.DB) (models.OrgPlanDetails, int, error) {
 	var org models.Organisation
 	var orgPlan models.OrganisationPlan
 	var currentPlan models.OrgPlanDetails
+
+	if isMember, _ := org.CheckUserIsMemberOfOrg(userID, customerID, db); !isMember {
+		return currentPlan, http.StatusForbidden, errors.New("user is not a member of this organisation")
+	}
 
 	org, err := org.GetOrgByID(db, customerID)
 	if err != nil {

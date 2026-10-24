@@ -1,7 +1,9 @@
 package agents
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/hngprojects/telex_be/internal/models"
@@ -10,10 +12,23 @@ import (
 	"gorm.io/gorm"
 )
 
-func AddAgentsSlashCommand(db *gorm.DB, ids map[string]string, req models.AddSlashCommandRequest) (models.SlashCommand, error) {
+func AddAgentsSlashCommand(db *gorm.DB, ids map[string]string, req models.AddSlashCommandRequest) (models.SlashCommand, int, error) {
+	var (
+		org            models.Organisation
+		orgIntegration models.OrganisationIntegrations
+	)
 
 	orgID := ids["org_id"]
 	integrationID := ids["agent_id"]
+
+	isMember, err := org.CheckUserIsMemberOfOrg(ids["user_id"], orgID, db)
+	if err != nil || !isMember {
+		return models.SlashCommand{}, http.StatusForbidden, errors.New("user not a member of organisation")
+	}
+
+	if !postgresql.CheckExists(db, &orgIntegration, "org_id = ? AND integration_id = ?", orgID, integrationID) {
+		return models.SlashCommand{}, http.StatusNotFound, errors.New("organisation does not have that agent")
+	}
 
 	slashCommand := models.SlashCommand{
 		ID:            utility.GenerateUUID(),
@@ -26,10 +41,10 @@ func AddAgentsSlashCommand(db *gorm.DB, ids map[string]string, req models.AddSla
 
 	response, err := slashCommand.CreateSlashCommand(db)
 	if err != nil {
-		return response, err
+		return response, http.StatusBadRequest, err
 	}
 
-	return response, nil
+	return response, http.StatusOK, nil
 }
 
 func GetIntegrationSlashCommands(db *gorm.DB, ids map[string]string) ([]models.SlashCommand, error) {

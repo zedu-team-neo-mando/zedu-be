@@ -102,14 +102,18 @@ func ChangeWebhookStatus(req models.ChangeWebhookStatusRequest, db *gorm.DB) (mo
 
 }
 
-func GetAllWebhook(db *gorm.DB, c *gin.Context, channelId string) ([]models.Webhook, postgresql.PaginationResponse, int, error) {
+func GetAllWebhook(db *gorm.DB, c *gin.Context, req models.ChannelInfo) ([]models.Webhook, postgresql.PaginationResponse, int, error) {
 
 	var (
 		resp     []models.Webhook
 		webhooks models.Webhook
 	)
 
-	resp, pagResp, err := webhooks.GetAllChannelWebhook(db, c, channelId)
+	if code, err := checkChannelMember(db, req); err != nil {
+		return resp, postgresql.PaginationResponse{}, code, err
+	}
+
+	resp, pagResp, err := webhooks.GetAllChannelWebhook(db, c, req.ChannelID)
 
 	if err != nil {
 		return resp, pagResp, http.StatusBadRequest, err
@@ -145,6 +149,10 @@ func GetChannelWebhook(db *gorm.DB, c *gin.Context, channelId, userId string) (m
 	chanReq.ChannelID = channelId
 	chanReq.UserID = userId
 
+	if code, err := checkChannelMember(db, chanReq); err != nil {
+		return resp, code, err
+	}
+
 	resp, err := webhooks.GetChannelWebhook(db, chanReq)
 
 	if err != nil {
@@ -153,4 +161,14 @@ func GetChannelWebhook(db *gorm.DB, c *gin.Context, channelId, userId string) (m
 
 	return resp, http.StatusOK, nil
 
+}
+
+// checkChannelMember reports 403 unless the user belongs to the channel. An
+// unknown channel is answered the same way so that ids cannot be probed.
+func checkChannelMember(db *gorm.DB, req models.ChannelInfo) (int, error) {
+	if !postgresql.CheckExistsInTable(db, "user_channels", "channels_id = ? AND user_id = ?", req.ChannelID, req.UserID) {
+		return http.StatusForbidden, errors.New("you are not a member of this channel")
+	}
+
+	return http.StatusOK, nil
 }

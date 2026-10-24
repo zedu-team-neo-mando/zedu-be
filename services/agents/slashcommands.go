@@ -1,7 +1,9 @@
 package agents
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/hngprojects/telex_be/internal/models"
@@ -10,10 +12,23 @@ import (
 	"gorm.io/gorm"
 )
 
-func AddAgentsSlashCommand(db *gorm.DB, ids map[string]string, req models.AddSlashCommandRequest) (models.SlashCommand, error) {
+func AddAgentsSlashCommand(db *gorm.DB, ids map[string]string, req models.AddSlashCommandRequest) (models.SlashCommand, int, error) {
+	var (
+		org            models.Organisation
+		orgIntegration models.OrganisationIntegrations
+	)
 
 	orgID := ids["org_id"]
 	integrationID := ids["agent_id"]
+
+	isMember, err := org.CheckUserIsMemberOfOrg(ids["user_id"], orgID, db)
+	if err != nil || !isMember {
+		return models.SlashCommand{}, http.StatusForbidden, errors.New("user not a member of organisation")
+	}
+
+	if !postgresql.CheckExists(db, &orgIntegration, "org_id = ? AND integration_id = ?", orgID, integrationID) {
+		return models.SlashCommand{}, http.StatusNotFound, errors.New("organisation does not have that agent")
+	}
 
 	slashCommand := models.SlashCommand{
 		ID:            utility.GenerateUUID(),
@@ -26,10 +41,10 @@ func AddAgentsSlashCommand(db *gorm.DB, ids map[string]string, req models.AddSla
 
 	response, err := slashCommand.CreateSlashCommand(db)
 	if err != nil {
-		return response, err
+		return response, http.StatusBadRequest, err
 	}
 
-	return response, nil
+	return response, http.StatusOK, nil
 }
 
 func GetIntegrationSlashCommands(db *gorm.DB, ids map[string]string) ([]models.SlashCommand, error) {
@@ -348,13 +363,13 @@ func handleRemoveFromChannel(db *gorm.DB, args map[string]string) (models.Remove
 	}
 
 	return models.RemoveFromChannelResponse{
-		Status:        "completed",
-		Message:       "Remove from channel operation completed",
-		Channel:       channelName,
-		RemovedUsers:  removedUsers,
-		FailedUsers:   failedUsers,
-		RemovedCount:  len(removedUsers),
-		FailedCount:   len(failedUsers),
+		Status:       "completed",
+		Message:      "Remove from channel operation completed",
+		Channel:      channelName,
+		RemovedUsers: removedUsers,
+		FailedUsers:  failedUsers,
+		RemovedCount: len(removedUsers),
+		FailedCount:  len(failedUsers),
 	}, nil
 }
 
@@ -705,10 +720,10 @@ func handlePromote(db *gorm.DB, args map[string]string) (models.PromoteResponse,
 			_, err = targetChannel.AddUserToChannel(db, req)
 			if err != nil {
 				results = append(results, models.PromoteDemoteResult{
-					Username:     username,
-					Status:       "partial_success",
-					RemovedFrom:  removedFrom,
-					Error:        fmt.Sprintf("failed to add to target channel: %v", err),
+					Username:    username,
+					Status:      "partial_success",
+					RemovedFrom: removedFrom,
+					Error:       fmt.Sprintf("failed to add to target channel: %v", err),
 				})
 				continue
 			}
@@ -800,10 +815,10 @@ func handleDemote(db *gorm.DB, args map[string]string) (models.DemoteResponse, e
 			_, err = targetChannel.AddUserToChannel(db, req)
 			if err != nil {
 				results = append(results, models.PromoteDemoteResult{
-					Username:     username,
-					Status:       "partial_success",
-					RemovedFrom:  removedFrom,
-					Error:        fmt.Sprintf("failed to add to target channel: %v", err),
+					Username:    username,
+					Status:      "partial_success",
+					RemovedFrom: removedFrom,
+					Error:       fmt.Sprintf("failed to add to target channel: %v", err),
 				})
 				continue
 			}
@@ -866,14 +881,14 @@ func handleAddToAllOrgChannels(db *gorm.DB, req models.ProcessSlashCommandReques
 
 	if len(channels) == 0 {
 		return models.AddToAllOrgChannelsResponse{
-			Status:         "completed",
-			Message:        "No channels found in organization",
-			Username:       username,
-			AddedChannels:  []string{},
-			AddedCount:     0,
+			Status:          "completed",
+			Message:         "No channels found in organization",
+			Username:        username,
+			AddedChannels:   []string{},
+			AddedCount:      0,
 			SkippedChannels: []models.SkippedChannel{},
-			SkippedCount:   0,
-			OrganisationID: orgID,
+			SkippedCount:    0,
+			OrganisationID:  orgID,
 		}, nil
 	}
 

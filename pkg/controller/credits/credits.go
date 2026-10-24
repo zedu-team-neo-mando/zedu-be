@@ -80,8 +80,33 @@ func (base *Controller) PurchaseCredits(c *gin.Context) {
 	c.JSON(code, rd)
 }
 
+// authoriseOrgMember writes the error response and returns false unless the
+// authenticated caller is a member of orgID. An unknown organisation gets the
+// same 403 as a non-member so callers cannot probe which organisations exist.
+func (base *Controller) authoriseOrgMember(c *gin.Context, orgID string) bool {
+	claim, err := middleware.GetUserClaims(c, base.Db.Postgresql, "user_id")
+	userID, ok := claim.(string)
+	if err != nil || !ok || userID == "" {
+		base.Logger.Info("unable to fetch user claims")
+		rd := utility.BuildErrorResponse(http.StatusUnauthorized, "error", "user context required", nil, nil)
+		c.JSON(http.StatusUnauthorized, rd)
+		return false
+	}
+
+	if _, err := new(models.Organisation).CheckUserIsMemberOfOrg(userID, orgID, base.Db.Postgresql); err != nil {
+		rd := utility.BuildErrorResponse(http.StatusForbidden, "error", "you are not a member of this organisation", nil, nil)
+		c.JSON(http.StatusForbidden, rd)
+		return false
+	}
+
+	return true
+}
+
 func (base *Controller) GetOrgCreditReport(c *gin.Context) {
 	org_id := c.Param("org_id")
+	if !base.authoriseOrgMember(c, org_id) {
+		return
+	}
 
 	creditUsageReport, code, err := models.GetOrgCreditReport(org_id, base.Db.Postgresql)
 	if err != nil {
@@ -97,6 +122,9 @@ func (base *Controller) GetOrgCreditReport(c *gin.Context) {
 
 func (base *Controller) GetOrgCreditTransactions(c *gin.Context) {
 	org_id := c.Param("org_id")
+	if !base.authoriseOrgMember(c, org_id) {
+		return
+	}
 
 	credits_transactions, paginationResponse, err := models.GetOrgCreditTransactions(org_id, base.Db.Postgresql, c)
 	if err != nil {

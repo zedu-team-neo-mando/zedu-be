@@ -363,13 +363,13 @@ func handleRemoveFromChannel(db *gorm.DB, args map[string]string) (models.Remove
 	}
 
 	return models.RemoveFromChannelResponse{
-		Status:        "completed",
-		Message:       "Remove from channel operation completed",
-		Channel:       channelName,
-		RemovedUsers:  removedUsers,
-		FailedUsers:   failedUsers,
-		RemovedCount:  len(removedUsers),
-		FailedCount:   len(failedUsers),
+		Status:       "completed",
+		Message:      "Remove from channel operation completed",
+		Channel:      channelName,
+		RemovedUsers: removedUsers,
+		FailedUsers:  failedUsers,
+		RemovedCount: len(removedUsers),
+		FailedCount:  len(failedUsers),
 	}, nil
 }
 
@@ -720,10 +720,10 @@ func handlePromote(db *gorm.DB, args map[string]string) (models.PromoteResponse,
 			_, err = targetChannel.AddUserToChannel(db, req)
 			if err != nil {
 				results = append(results, models.PromoteDemoteResult{
-					Username:     username,
-					Status:       "partial_success",
-					RemovedFrom:  removedFrom,
-					Error:        fmt.Sprintf("failed to add to target channel: %v", err),
+					Username:    username,
+					Status:      "partial_success",
+					RemovedFrom: removedFrom,
+					Error:       fmt.Sprintf("failed to add to target channel: %v", err),
 				})
 				continue
 			}
@@ -815,10 +815,10 @@ func handleDemote(db *gorm.DB, args map[string]string) (models.DemoteResponse, e
 			_, err = targetChannel.AddUserToChannel(db, req)
 			if err != nil {
 				results = append(results, models.PromoteDemoteResult{
-					Username:     username,
-					Status:       "partial_success",
-					RemovedFrom:  removedFrom,
-					Error:        fmt.Sprintf("failed to add to target channel: %v", err),
+					Username:    username,
+					Status:      "partial_success",
+					RemovedFrom: removedFrom,
+					Error:       fmt.Sprintf("failed to add to target channel: %v", err),
 				})
 				continue
 			}
@@ -881,14 +881,14 @@ func handleAddToAllOrgChannels(db *gorm.DB, req models.ProcessSlashCommandReques
 
 	if len(channels) == 0 {
 		return models.AddToAllOrgChannelsResponse{
-			Status:         "completed",
-			Message:        "No channels found in organization",
-			Username:       username,
-			AddedChannels:  []string{},
-			AddedCount:     0,
+			Status:          "completed",
+			Message:         "No channels found in organization",
+			Username:        username,
+			AddedChannels:   []string{},
+			AddedCount:      0,
 			SkippedChannels: []models.SkippedChannel{},
-			SkippedCount:   0,
-			OrganisationID: orgID,
+			SkippedCount:    0,
+			OrganisationID:  orgID,
 		}, nil
 	}
 

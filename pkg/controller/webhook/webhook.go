@@ -11,6 +11,7 @@ import (
 
 	"github.com/hngprojects/telex_be/external/request"
 	"github.com/hngprojects/telex_be/internal/models"
+	"github.com/hngprojects/telex_be/pkg/middleware"
 	"github.com/hngprojects/telex_be/pkg/repository/storage"
 	"github.com/hngprojects/telex_be/services/webhook"
 	"github.com/hngprojects/telex_be/utility"
@@ -34,10 +35,18 @@ func (base *Controller) GetAllWebhook(c *gin.Context) {
 		return
 	}
 
-	respData, additionalInfo, code, err := webhook.GetAllWebhook(base.Db.Postgresql, c, channelId)
+	userId, err := base.callerUserID(c)
+	if err != nil {
+		base.Logger.Info("error getting user id from claims")
+		rd := utility.BuildErrorResponse(http.StatusUnauthorized, "error", "authentication required", err, nil)
+		c.JSON(http.StatusUnauthorized, rd)
+		return
+	}
+
+	respData, additionalInfo, code, err := webhook.GetAllWebhook(base.Db.Postgresql, c, models.ChannelInfo{ChannelID: channelId, UserID: userId})
 	if err != nil {
 		base.Logger.Info("error fetching webhooks")
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
+		rd := utility.BuildErrorResponse(code, "error", err.Error(), err, nil)
 		c.JSON(code, rd)
 		return
 	}
@@ -317,21 +326,18 @@ func (base *Controller) GetChannelWebhook(c *gin.Context) {
 		return
 	}
 
-	claims, exists := c.Get("userClaims")
-	if !exists {
-		base.Logger.Info("error getting claims")
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "error getting claims", nil, nil)
-		c.JSON(http.StatusBadRequest, rd)
+	userId, err := base.callerUserID(c)
+	if err != nil {
+		base.Logger.Info("error getting user id from claims")
+		rd := utility.BuildErrorResponse(http.StatusUnauthorized, "error", "authentication required", err, nil)
+		c.JSON(http.StatusUnauthorized, rd)
 		return
 	}
-
-	userClaims := claims.(jwt.MapClaims)
-	userId := userClaims["user_id"].(string)
 
 	respData, code, err := webhook.GetChannelWebhook(base.Db.Postgresql, c, channelId, userId)
 	if err != nil {
 		base.Logger.Info("error fetching webhooks")
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", err.Error(), err, nil)
+		rd := utility.BuildErrorResponse(code, "error", err.Error(), err, nil)
 		c.JSON(code, rd)
 		return
 	}
@@ -339,4 +345,18 @@ func (base *Controller) GetChannelWebhook(c *gin.Context) {
 	base.Logger.Info("webhook fetched successfully")
 	rd := utility.BuildSuccessResponse(http.StatusOK, "webhook fetched successfully", respData)
 	c.JSON(code, rd)
+}
+
+func (base *Controller) callerUserID(c *gin.Context) (string, error) {
+	claim, err := middleware.GetUserClaims(c, base.Db.Postgresql, "user_id")
+	if err != nil {
+		return "", err
+	}
+
+	userId, ok := claim.(string)
+	if !ok || userId == "" {
+		return "", errors.New("invalid user id in claims")
+	}
+
+	return userId, nil
 }

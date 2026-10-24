@@ -45,17 +45,23 @@ func (base *Controller) AddChannelAgentSetting(c *gin.Context) {
 		return
 	}
 
+	userID, ok := base.callerID(c)
+	if !ok {
+		return
+	}
+
 	ids := map[string]string{
 		"org_id":     org_id,
 		"agent_id":   agent_id,
 		"channel_id": channel_id,
+		"user_id":    userID,
 	}
 
-	err := agents.AddChannelAgentSettings(base.Db.Postgresql, ids, req)
+	code, err := agents.AddChannelAgentSettings(base.Db.Postgresql, ids, req)
 	if err != nil {
 		base.Logger.Error("Failed to add channel agent settings", err)
-		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "Failed to add channel agent setting", err.Error(), nil)
-		c.JSON(http.StatusBadRequest, rd)
+		rd := utility.BuildErrorResponse(code, "error", "Failed to add channel agent setting", err.Error(), nil)
+		c.JSON(code, rd)
 		return
 	}
 

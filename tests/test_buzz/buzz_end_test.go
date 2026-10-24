@@ -97,7 +97,7 @@ func TestBuzzEnd(t *testing.T) {
 		t.Fatal("failed to obtain buzzID")
 	}
 
-	t.Run("EndBuzzSuccessByNonHost", func(t *testing.T) {
+	t.Run("EndBuzzForbiddenForNonHost", func(t *testing.T) {
 		// Create a second user (non-host)
 		nonHostEmail := utility.GenerateUUID() + "@qa.team"
 		nonHostSignUp := models.CreateUserRequestModel{Email: nonHostEmail, Password: "password"}
@@ -128,16 +128,14 @@ func TestBuzzEnd(t *testing.T) {
 		rr := httptest.NewRecorder()
 		router.ServeHTTP(rr, req)
 
-		tst.AssertStatusCode(t, rr.Code, http.StatusOK)
+		tst.AssertStatusCode(t, rr.Code, http.StatusForbidden)
 
-		data := tst.ParseResponse(rr)
-		dataM, ok := data["data"].(map[string]any)
-		if !ok {
-			t.Fatalf("expected data field in response, got %v", data)
+		var stillLive models.Buzz
+		if err := db.Postgresql.Where("id = ?", newBuzzID).First(&stillLive).Error; err != nil {
+			t.Fatalf("failed to reload buzz: %v", err)
 		}
-
-		if dataM["buzz_id"].(string) != newBuzzID {
-			t.Errorf("expected buzz_id %s, got %s", newBuzzID, dataM["buzz_id"].(string))
+		if stillLive.Status != models.BuzzStatusActive || !stillLive.IsLiveStatus {
+			t.Errorf("expected buzz %s to stay live after a non-host end attempt, got status %s", newBuzzID, stillLive.Status)
 		}
 	})
 

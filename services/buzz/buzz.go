@@ -952,6 +952,13 @@ func EndBuzz(db *storage.Database, logger *utility.Logger, buzzID, hostID string
 		}, code, nil
 	}
 
+	// Only the host can end a channel buzz, as in EndBuzzByChannel.
+	if buzz.HostID != hostID {
+		statusCode, errMsg := mapPermissionError(permissions.ErrNotHost, "end")
+		logger.Error("user %s is not the host of buzz %s", hostID, buzzID)
+		return nil, statusCode, errors.New(errMsg)
+	}
+
 	now := time.Now().UTC()
 
 	// Update buzz status in transaction

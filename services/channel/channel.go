@@ -324,11 +324,11 @@ func CheckUser(channelId, userID string, db *gorm.DB) (gin.H, int, error) {
 	return resp, http.StatusOK, nil
 }
 
-func SearchChannelsByNames(db *gorm.DB, c *gin.Context, name string) ([]models.Channels, postgresql.PaginationResponse, error) {
+func SearchChannelsByNames(db *gorm.DB, c *gin.Context, ids models.IDS) ([]models.Channels, postgresql.PaginationResponse, error) {
 	var (
 		channel models.Channels
 	)
-	channels, paginationResponse, err := channel.SearchChannelssByName(db, c, name)
+	channels, paginationResponse, err := channel.SearchChannelssByName(db, c, ids)
 
 	if err != nil {
 		return channels, paginationResponse, err

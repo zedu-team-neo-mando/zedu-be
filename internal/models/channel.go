@@ -1157,19 +1157,28 @@ func (r *UserChannels) CheckUser(db *gorm.DB, userID, channelID string) (bool, s
 	return true, "user in channel"
 }
 
-func (r *Channels) SearchChannelssByName(db *gorm.DB, c *gin.Context, name string) ([]Channels, postgresql.PaginationResponse, error) {
+var likePatternEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
+// SearchChannelssByName only returns channels in the caller's organisation: public ones, plus private
+// ones the caller belongs to. Members are not preloaded so other users' details are never exposed,
+// and LIKE wildcards in the search term are escaped so "%" cannot match every channel.
+func (r *Channels) SearchChannelssByName(db *gorm.DB, c *gin.Context, ids IDS) ([]Channels, postgresql.PaginationResponse, error) {
 	var channels []Channels
 
 	pagination := postgresql.GetPagination(c)
+	memberChannels := db.Model(&UserChannels{}).Select("channels_id").Where("user_id = ?", ids.UserID)
 
 	paginationResponse, err := postgresql.SelectAllFromDbOrderByPaginated(
-		db.Preload("Users"),
+		db,
 		"created_at",
 		"desc",
 		pagination,
 		&channels,
-		"name LIKE ?",
-		"%"+name+"%",
+		`organisation_id = ? AND name LIKE ? ESCAPE '\' AND (is_private = ? OR id IN (?))`,
+		ids.OrganisationID,
+		"%"+likePatternEscaper.Replace(ids.Search)+"%",
+		false,
+		memberChannels,
 	)
 
 	if err != nil {

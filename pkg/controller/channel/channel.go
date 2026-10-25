@@ -584,9 +584,29 @@ func (base *Controller) CheckUser(c *gin.Context) {
 }
 
 func (base *Controller) SearchChannelsByNames(c *gin.Context) {
-	name := c.Param("channelName")
+	claims, exists := c.Get("userClaims")
+	if !exists {
+		rd := utility.BuildErrorResponse(http.StatusUnauthorized, "error", "Unauthorized", "user claims not found", nil)
+		c.JSON(http.StatusUnauthorized, rd)
+		return
+	}
+	userClaims := claims.(jwt.MapClaims)
+	userID, _ := userClaims["user_id"].(string)
+	orgID, _ := userClaims["org_id"].(string)
 
-	channels, paginationResponse, err := channel.SearchChannelsByNames(base.Db.Postgresql, c, name)
+	if !utility.IsValidUUID(orgID) {
+		rd := utility.BuildErrorResponse(http.StatusBadRequest, "error", "no organisation selected", "user has no current organisation", nil)
+		c.JSON(http.StatusBadRequest, rd)
+		return
+	}
+
+	ids := models.IDS{
+		OrganisationID: orgID,
+		UserID:         userID,
+		Search:         c.Param("channelName"),
+	}
+
+	channels, paginationResponse, err := channel.SearchChannelsByNames(base.Db.Postgresql, c, ids)
 	if err != nil {
 		base.Logger.Info("error fetching channels")
 		rd := utility.BuildErrorResponse(http.StatusNotFound, "error", "failed to fetch channels", err, nil)

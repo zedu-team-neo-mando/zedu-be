@@ -936,6 +936,15 @@ func EndBuzz(db *storage.Database, logger *utility.Logger, buzzID, hostID string
 	}
 	logger.Info("buzz %s status validated for ending", buzzID)
 
+	// Only the host can end a buzz, as in EndBuzzByChannel. For DM and group-DM
+	// calls the host is the caller: recipients decline through RespondToCall, and
+	// LeaveBuzz hands the host role to a remaining participant.
+	if buzz.HostID != hostID {
+		statusCode, errMsg := mapPermissionError(permissions.ErrNotHost, "end")
+		logger.Error("user %s is not the host of buzz %s", hostID, buzzID)
+		return nil, statusCode, errors.New(errMsg)
+	}
+
 	// Handle direct call cancellation logic if it's a DM or Group DM
 	if buzz.ChannelType == models.ChannelTypeDM || buzz.ChannelType == models.ChannelTypeGroupDM {
 		resp, code, err := handleDirectCallCancellation(db, logger, *buzz, buzzID)
@@ -950,13 +959,6 @@ func EndBuzz(db *storage.Database, logger *utility.Logger, buzzID, hostID string
 			EndedAt:   time.Now().UTC(),
 			Status:    resp.Status,
 		}, code, nil
-	}
-
-	// Only the host can end a channel buzz, as in EndBuzzByChannel.
-	if buzz.HostID != hostID {
-		statusCode, errMsg := mapPermissionError(permissions.ErrNotHost, "end")
-		logger.Error("user %s is not the host of buzz %s", hostID, buzzID)
-		return nil, statusCode, errors.New(errMsg)
 	}
 
 	now := time.Now().UTC()

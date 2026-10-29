@@ -258,12 +258,19 @@ func (cred *Credential) GetSkillCredentials(db *gorm.DB) ([]SkillCredentialsResp
 	return dbCredentials, http.StatusOK, nil
 }
 
+// GetCredentialByID returns the credential only when it belongs to cred.UserId
+// in cred.OrgId. Anyone else gets "credential not found", so the response
+// doesn't reveal whether the id exists.
 func (cred *Credential) GetCredentialByID(db *gorm.DB) (*CredentialsResponse, int, error) {
 	res := CredentialsResponse{}
 
+	if cred.UserId == "" || cred.OrgId == "" {
+		return &res, http.StatusNotFound, fmt.Errorf("credential not found")
+	}
+
 	var dbCredential Credential
 	err := db.Model(&Credential{}).
-		Where("id = ?", cred.ID).
+		Where("id = ? AND user_id = ? AND org_id = ?", cred.ID, cred.UserId, cred.OrgId).
 		First(&dbCredential).Error
 
 	if err != nil {

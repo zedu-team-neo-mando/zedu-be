@@ -329,7 +329,6 @@ func CreateThreadDmMessage(req models.CreateThreadMsgReq, db *storage.Database, 
 		return &thread, code, err
 	}
 
-	
 	if !pairRoom {
 
 		dmchannel := models.DmChannels{}
@@ -353,7 +352,7 @@ func CreateThreadDmMessage(req models.CreateThreadMsgReq, db *storage.Database, 
 			pairRoomChan.ID = utility.GenerateUUID()
 			pairRoomChan.ChannelId = dmchannel.ChannelId
 			pairRoomChan.OrgId = dmchannel.OrgId
-			
+
 			_, err = pairRoomChan.CreateDmChannel(db.Postgresql)
 			if err != nil {
 				return &thread, http.StatusInternalServerError, err

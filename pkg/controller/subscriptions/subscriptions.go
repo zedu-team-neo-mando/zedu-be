@@ -12,6 +12,7 @@ import (
 	"github.com/hngprojects/telex_be/pkg/repository/storage"
 	service "github.com/hngprojects/telex_be/services/subscription"
 	"github.com/hngprojects/telex_be/utility"
+	"github.com/stripe/stripe-go/v72"
 )
 
 type Controller struct {
@@ -19,6 +20,11 @@ type Controller struct {
 	Validator *validator.Validate
 	Logger    *utility.Logger
 	ExtReq    request.ExternalRequest
+
+	// Optional overrides, used by tests. When empty, the configured
+	// STRIPE_WEBHOOK_SECRET and the real Stripe API are used.
+	StripeWebhookSecret string
+	GetCheckoutSession  func(id string) (*stripe.CheckoutSession, error)
 }
 
 func (base *Controller) CreateSubscription(c *gin.Context) {
@@ -224,7 +230,6 @@ func (base *Controller) GetCurrentSubscription(c *gin.Context) {
 
 func (base *Controller) GetSubscriptions(c *gin.Context) {
 
-
 	orgID, err := middleware.GetUserClaims(c, base.Db.Postgresql, "org_id")
 	if err != nil {
 		base.Logger.Info("unable to fetch org claims")
@@ -232,7 +237,6 @@ func (base *Controller) GetSubscriptions(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, rd)
 		return
 	}
-	
 
 	subscriptionsData, code, err := service.GetSubscriptions(orgID.(string), base.Db.Postgresql)
 	if err != nil {

@@ -60,6 +60,18 @@ failures. Do not report success on a red build.
 - Use the Elastic wrappers and reference `models.ThreadIndexName` / `models.MessageIndexName`
   (prefixed by `ELASTIC_INDEX_PREFIX`); do not hardcode index names.
 
+## Organisation ID (`org_id`) rule
+
+- The active organisation for an authenticated request **must** come from the signed JWT claims —
+  never the URL path parameter. Read it via `userClaims["org_id"]` (`common.GetAllUserClaims(c)` /
+  `middleware.GetUserClaims(c, db, "org_id")`); do **not** source it with `c.Param("org_id")`.
+- The claim is authoritative; the path value is client-controlled and can disagree with the token.
+  Where a route still carries `:org_id`, a mismatched value must be rejected (404), not acted upon.
+- Exceptions: middleware that deliberately validates the path organisation against the token
+  (`pkg/middleware/permission.go`), and unauthenticated routes with no claims.
+- Enforced in CI: a PR that adds `c.Param("org_id")` under `pkg/controller/` fails the
+  `org_id convention` workflow (`.github/workflows/org-id-convention.yml`).
+
 ## Code style
 
 - Idiomatic, `gofmt`-clean Go. No comments that restate the code, and **never** numbered comments

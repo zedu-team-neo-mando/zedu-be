@@ -31,9 +31,9 @@ jobs:
       contents: read
       pull-requests: read
       statuses: write
-    uses: zedu-hng/zedu-ci/.github/workflows/pr-rules.yml@26ed37d4f4d50007783fbc3e9213d6ab39c39309
+    uses: zedu-hng/zedu-ci/.github/workflows/pr-rules.yml@8e31deaa857e62ed4bac364dfe8457eaaafd93f0
     with:
-      protected: '^(\.github/|AGENTS\.md$|AGENT\.md$|CONTRIBUTING\.md$|go\.mod$|go\.sum$|Makefile$|Dockerfile$|Dockerfile\.dev$|docker-compose.*\.ya?ml$|\.air\.toml$|app-sample\.env$|commitlint\.config\.|\.gitleaks\.toml$|\.semgrepignore$|internal/config/)'
+      protected: '^(\.github/|AGENTS\.md$|AGENT\.md$|CONTRIBUTING\.md$|go\.mod$|go\.sum$|Makefile$|Dockerfile$|Dockerfile\.dev$|docker-compose.*\.ya?ml$|\.air\.toml$|app-sample\.env$|commitlint\.config\.|\.gitleaks\.toml$|\.semgrepignore$|internal/config/|scripts/check-org-id-convention\.sh$)'
       size_exclude: '(^|/)go\.sum$'
       template: .github/pull_request_template.md
       # Teams may open a batch/consolidated PR from their fork, so a PR may combine a team's work.

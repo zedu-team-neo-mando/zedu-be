@@ -1,0 +1,27 @@
+name: org_id convention
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: org-id-convention-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  org-id-convention:
+    name: org_id convention
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check org_id comes from JWT claims
+        run: |
+          ./scripts/check-org-id-convention.sh \
+            "${{ github.event.pull_request.base.sha }}" \
+            "${{ github.sha }}"

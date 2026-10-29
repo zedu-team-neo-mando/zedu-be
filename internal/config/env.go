@@ -142,12 +142,12 @@ type BaseConfig struct {
 	GOOGLE_REDIRECT_URI          string `mapstructure:"GOOGLE_REDIRECT_URI"`
 	GOOGLE_DESKTOP_CLIENT_ID     string `mapstructure:"GOOGLE_DESKTOP_CLIENT_ID"`
 	GOOGLE_DESKTOP_CLIENT_SECRET string `mapstructure:"GOOGLE_DESKTOP_CLIENT_SECRET"`
-	APPLE_CLIENT_ID      string `mapstructure:"APPLE_CLIENT_ID"`
-	APPLE_TEAM_ID        string `mapstructure:"APPLE_TEAM_ID"`
-	APPLE_KEY_ID         string `mapstructure:"APPLE_KEY_ID"`
-	APPLE_PRIVATE_KEY    string `mapstructure:"APPLE_PRIVATE_KEY"`
-	PubKey               string `mapstructure:"NEXT_PUBLIC_VAPID_PUBLIC_KEY"`
-	PrivKey              string `mapstructure:"NEXT_PUBLIC_VAPID_PRIVATE_KEY"`
+	APPLE_CLIENT_ID              string `mapstructure:"APPLE_CLIENT_ID"`
+	APPLE_TEAM_ID                string `mapstructure:"APPLE_TEAM_ID"`
+	APPLE_KEY_ID                 string `mapstructure:"APPLE_KEY_ID"`
+	APPLE_PRIVATE_KEY            string `mapstructure:"APPLE_PRIVATE_KEY"`
+	PubKey                       string `mapstructure:"NEXT_PUBLIC_VAPID_PUBLIC_KEY"`
+	PrivKey                      string `mapstructure:"NEXT_PUBLIC_VAPID_PRIVATE_KEY"`
 
 	AGORA_APP_ID          string `mapstructure:"AGORA_APP_ID"`
 	AGORA_APP_CERTIFICATE string `mapstructure:"AGORA_APP_CERTIFICATE"`

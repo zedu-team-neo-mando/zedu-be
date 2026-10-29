@@ -1586,7 +1586,6 @@ func HydrateThreadsStructList(db *gorm.DB, threads []Threads) []Threads {
 	return threads
 }
 
-
 func (t *Threads) GetAllGroupThreadsByChannelID(c *gin.Context, db *gorm.DB, channelID string, timeRange time.Time) ([]Threads, *elastic.PaginationResponse, int, error) {
 	var (
 		threads []Threads

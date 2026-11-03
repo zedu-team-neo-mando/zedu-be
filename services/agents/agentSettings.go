@@ -1,6 +1,7 @@
 package agents
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -30,28 +31,33 @@ func AddAgentSettings(db *gorm.DB, ids map[string]string, req models.AddIntegrat
 	return nil
 }
 
-func GetAgentSetting(db *gorm.DB, ids map[string]string) ([]models.IntegrationSettings, error) {
+func GetAgentSetting(db *gorm.DB, ids map[string]string) ([]models.IntegrationSettings, int, error) {
 	var (
 		organisation models.Organisation
 		agent        models.Integrations
 		setting      models.IntegrationSettings
 	)
 
+	isMember, err := organisation.CheckUserIsMemberOfOrg(ids["user_id"], ids["org_id"], db)
+	if err != nil || !isMember {
+		return []models.IntegrationSettings{}, http.StatusForbidden, errors.New("user not a member of organisation")
+	}
+
 	exists := postgresql.CheckExists(db, &organisation, "id = ?", ids["org_id"])
 	if !exists {
-		return []models.IntegrationSettings{}, fmt.Errorf("organisation does not exist")
+		return []models.IntegrationSettings{}, http.StatusBadRequest, fmt.Errorf("organisation does not exist")
 	}
 
 	exists = postgresql.CheckExists(db, &agent, "id = ?", ids["agent_id"])
 	if !exists {
-		return []models.IntegrationSettings{}, fmt.Errorf("agent does not exist")
+		return []models.IntegrationSettings{}, http.StatusBadRequest, fmt.Errorf("agent does not exist")
 	}
 
 	settings, err := setting.GetIntegrationSetting(db, ids)
 	if err != nil {
-		return settings, err
+		return settings, http.StatusBadRequest, err
 	}
-	return settings, nil
+	return settings, http.StatusOK, nil
 }
 
 func GetCustomAgentApiKey(db *gorm.DB, ids map[string]string) (string, int, error) {

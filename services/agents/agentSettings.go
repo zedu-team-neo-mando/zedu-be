@@ -11,7 +11,11 @@ import (
 	"github.com/hngprojects/telex_be/utility"
 )
 
-func AddAgentSettings(db *gorm.DB, ids map[string]string, req models.AddIntegrationSettingsRequest) error {
+func AddAgentSettings(db *gorm.DB, ids map[string]string, req models.AddIntegrationSettingsRequest) (int, error) {
+	if code, err := verifyOrgAgentAccess(db, ids); err != nil {
+		return code, err
+	}
+
 	orgID := ids["org_id"]
 
 	is := models.IntegrationSettings{
@@ -24,10 +28,10 @@ func AddAgentSettings(db *gorm.DB, ids map[string]string, req models.AddIntegrat
 
 	err := is.CreateIntegrationSettings(db)
 	if err != nil {
-		return err
+		return http.StatusBadRequest, err
 	}
 
-	return nil
+	return http.StatusOK, nil
 }
 
 func GetAgentSetting(db *gorm.DB, ids map[string]string) ([]models.IntegrationSettings, error) {

@@ -1,7 +1,9 @@
 package agents
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/hngprojects/telex_be/internal/models"
 	"github.com/hngprojects/telex_be/pkg/repository/storage/postgresql"
@@ -9,7 +11,16 @@ import (
 	"gorm.io/gorm"
 )
 
-func AddChannelAgentSettings(db *gorm.DB, ids map[string]string, req models.AddIntegrationSettingsRequest) error {
+func AddChannelAgentSettings(db *gorm.DB, ids map[string]string, req models.AddIntegrationSettingsRequest) (int, error) {
+	var channel models.Channels
+
+	if code, err := verifyOrgAgentAccess(db, ids); err != nil {
+		return code, err
+	}
+
+	if !channel.CheckChannelExistsInOrg(db, ids["channel_id"], ids["org_id"]) {
+		return http.StatusNotFound, errors.New("channel does not exist in organisation")
+	}
 
 	is := models.ChannelIntegrationSettings{
 		ID:             utility.GenerateUUID(),
@@ -22,10 +33,10 @@ func AddChannelAgentSettings(db *gorm.DB, ids map[string]string, req models.AddI
 
 	err := is.CreateChannelIntegrationSettings(db)
 	if err != nil {
-		return err
+		return http.StatusBadRequest, err
 	}
 
-	return nil
+	return http.StatusOK, nil
 }
 
 func GetChannelAgentSettings(db *gorm.DB, ids map[string]string) ([]models.ChannelIntegrationSettings, error) {

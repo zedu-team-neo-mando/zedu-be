@@ -623,8 +623,14 @@ func (base *Controller) MoveFile(c *gin.Context) {
 		return
 	}
 
-	file, err := services.MoveFile(base.Db.Postgresql, fileID, req.FolderID)
+	file, err := services.MoveFile(base.Db.Postgresql, fileID, req.FolderID, userID, orgID)
 	if err != nil {
+		if errors.Is(err, services.ErrFolderNotFound) {
+			base.Logger.Info("Destination folder denied", "folder_id", req.FolderID, "user_id", userID)
+			rd := utility.BuildErrorResponse(http.StatusNotFound, "error", "Folder not found", "The destination folder does not exist in your organisation", nil)
+			c.JSON(http.StatusNotFound, rd)
+			return
+		}
 		rd := utility.BuildErrorResponse(http.StatusInternalServerError, "error", err.Error(), "Failed to move file", nil)
 		c.JSON(http.StatusInternalServerError, rd)
 		return

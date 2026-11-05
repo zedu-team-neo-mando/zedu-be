@@ -648,7 +648,11 @@ func UpdateFileName(db *gorm.DB, logger *utility.Logger, params models.UpdateFil
 	return fileResponse, nil
 }
 
-func MoveFile(db *gorm.DB, fileID, folderID string) (*models.File, error) {
+// MoveFile moves a file into a destination folder. A destination folder is
+// resolved only when it belongs to the caller and to the caller's organisation,
+// so a move cannot drop a file into another user's folder or a folder owned by
+// another organisation.
+func MoveFile(db *gorm.DB, fileID, folderID, userID, orgID string) (*models.File, error) {
 	var file models.File
 	err := db.Where("id = ?", fileID).First(&file).Error
 	if err != nil {
@@ -657,6 +661,14 @@ func MoveFile(db *gorm.DB, fileID, folderID string) (*models.File, error) {
 
 	var fID *string
 	if folderID != "" {
+		var folder models.Folder
+		err := db.Where("id = ? AND organisation_id = ? AND user_id = ?", folderID, orgID, userID).First(&folder).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, ErrFolderNotFound
+			}
+			return nil, fmt.Errorf("failed to get folder: %w", err)
+		}
 		fID = &folderID
 	} else {
 		fID = nil // move to root

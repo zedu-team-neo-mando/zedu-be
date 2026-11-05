@@ -27,6 +27,7 @@ var (
 	ErrCannotShareOwnFile   = errors.New("cannot share file with yourself")
 	ErrUserNotInOrg         = errors.New("user is not in same organization")
 	ErrFileNotFound         = errors.New("file not found")
+	ErrFolderNotFound       = errors.New("folder not found in your organisation")
 	ErrEditPermissionDenied = errors.New("user does not have edit permission")
 )
 
